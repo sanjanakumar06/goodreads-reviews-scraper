@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Scrape Reviews{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12 text-center">
+            <h1 class="mb-4">Scrape Reviews from Goodreads</h1>
+            <p class="lead">Enter a book title and author to search for and scrape its reviews.</p>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="post" action="{% url 'reviews:scrape_book' %}" class="mb-5">
+                {% csrf_token %}
+                <div class="form-group mb-3">
+                    <label for="title">Book Title</label>
+                    <input type="text" name="title" id="title" class="form-control" placeholder="Book Title" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="author">Author (optional)</label>
+                    <input type="text" name="author" id="author" class="form-control" placeholder="Author">
+                </div>
+                <div class="form-group mb-3">
+                    <label for="scrape_count">Number of Reviews to Scrape:</label>
+                    <select class="form-select me-2" id="review-count" name="scrape_count" style="width: 150px;">
+                        <option value="10">~10 reviews</option>
+                        <option value="25" selected>~25 reviews</option>
+                        <option value="50">~50 reviews</option>
+                        <option value="100">~100 reviews</option>
+                        <option value="500">~500 reviews</option>
+                        <option value="-1">All available</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Scrape Reviews</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

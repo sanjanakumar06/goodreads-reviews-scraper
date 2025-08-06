@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Search Books{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1 class="mb-4">Book Search: All Sources</h1>
+  <form class="row g-3 mb-4" method="get">
+    <div class="col-md-9">
+      <input type="text" name="query" class="form-control form-control-lg" placeholder="Search by title or author..." value="{{ query }}">
+    </div>
+    <div class="col-md-3 d-grid">
+      <button class="btn btn-primary btn-lg" type="submit">Search</button>
+    </div>
+  </form>
+
+  {% if results %}
+    <div class="row">
+      {% for entry in results %}
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card shadow-sm h-100">
+            <!-- COVER -->
+            <div class="card-img-top text-center bg-light" style="height:260px;">
+              {% if entry.goodreads and entry.goodreads.cover_image_url %}
+                <img src="{{ entry.goodreads.cover_image_url }}" style="max-height:240px; object-fit:contain; max-width:80%;" alt="Book cover">
+              {% elif entry.google and entry.google.volumeInfo.imageLinks %}
+                <img src="{{ entry.google.volumeInfo.imageLinks.thumbnail }}" style="max-height:240px; object-fit:contain; max-width:80%;" alt="Book cover">
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <!-- TITLE AND AUTHOR -->
+              <h5 class="card-title mb-1">
+                {% if entry.goodreads %}
+                  {{ entry.goodreads.title }}
+                {% elif entry.google %}
+                  {{ entry.google.volumeInfo.title }}
+                {% endif %}
+              </h5>
+              <div class="mb-2 text-muted">
+                {% if entry.goodreads %}
+                  {{ entry.goodreads.author }}
+                {% elif entry.google %}
+                  {{ entry.google.volumeInfo.authors|join:", " }}
+                {% endif %}
+              </div>
+
+              <!-- RATINGS -->
+              <div class="mb-2">
+                {% if entry.avg_rating %}
+                  <span class="h5">{{ entry.avg_rating|floatformat:2 }}</span><span class="text-warning">&#9733;</span>
+                  <span class="text-muted small ms-1">
+                    (Average of 
+                    {% if entry.goodreads and entry.goodreads.average_rating %}Goodreads{% endif %}
+                    {% if entry.goodreads and entry.goodreads.average_rating and entry.google and entry.google.volumeInfo.averageRating %} and {% endif %}
+                    {% if entry.google and entry.google.volumeInfo.averageRating %}Google Books{% endif %}
+                    ratings)
+                  </span>
+                {% elif entry.goodreads and entry.goodreads.average_rating %}
+                  <span class="h5">{{ entry.goodreads.average_rating }}</span> <span class="text-warning">&#9733;</span>
+                  <span class="text-muted small ms-1">(Goodreads)</span>
+                {% elif entry.google and entry.google.volumeInfo.averageRating %}
+                  <span class="h5">{{ entry.google.volumeInfo.averageRating }}</span> <span class="text-warning">&#9733;</span>
+                  <span class="text-muted small ms-1">(Google Books)</span>
+                {% else %}
+                  <span class="text-secondary small">No rating</span>
+                {% endif %}
+              </div>
+
+
+
+              <!-- SOURCE BADGES -->
+              <div class="mb-2">
+                {% if entry.goodreads %}<span class="badge bg-success">Goodreads</span>{% endif %}
+                {% if entry.google %}<span class="badge bg-primary">Google Books</span>{% endif %}
+              </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+              <!-- VIEW DETAILS: link to details view only for record in your DB (Goodreads imported) -->
+              {% if entry.goodreads %}
+                <a href="{% url 'reviews:book_detail' entry.goodreads.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+              {% else %}
+                <form method="post" action="{% url 'reviews:import_from_google_books' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="gb_id" value="{{ entry.google.id }}">
+                  <button class="btn btn-sm btn-success">Import &amp; Scrape Reviews</button>
+                </form>
+              {% endif %}
+              <!-- Direct links -->
+              <div>
+                {% if entry.goodreads and entry.goodreads.goodreads_url %}
+                  <a href="{{ entry.goodreads.goodreads_url }}" target="_blank" class="btn btn-link btn-sm">Goodreads</a>
+                {% endif %}
+                {% if entry.google and entry.google.volumeInfo.infoLink %}
+                  <a href="{{ entry.google.volumeInfo.infoLink }}" target="_blank" class="btn btn-link btn-sm">Google Books</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

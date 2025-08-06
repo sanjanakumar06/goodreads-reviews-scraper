@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Reviews for {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <!-- Book Cover -->
+        <div class="col-md-3 text-center mb-4">
+            {% if book.cover_image_url %}
+                <img src="{{ book.cover_image_url }}" class="img-fluid rounded shadow-sm" alt="{{ book.title }}">
+            {% else %}
+                <div class="img-fluid rounded bg-light text-center p-5 shadow-sm">
+                    <p class="text-muted">No Image</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Book Details -->
+        <div class="col-md-9">
+            <h1>{{ book.title }}</h1>
+            <h4 class="text-muted">{{ book.author }}</h4>
+
+            <div class="d-flex align-items-center mb-3">
+                <span class="h4 text-warning mb-0 me-2">&#9733;</span>
+                <span class="h4 mb-0">{{ book.average_rating|floatformat:2|default:"N/A" }}</span>
+                <span class="text-muted ms-2">({{ book.num_ratings|intcomma|default:0 }} ratings, {{ book.num_reviews|intcomma|default:0 }} reviews)</span>
+            </div>
+
+            <p class="mb-4">
+                {{ book.description|default:"No description available."|safe }}
+            </p>
+
+            <!-- Scrape Reviews Form -->
+            <form method="post" action="{% url 'reviews:scrape_book' %}" class="d-flex align-items-center mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="title" value="{{ book.title }}">
+                <input type="hidden" name="author" value="{{ book.author }}">
+                <select class="form-select me-2" id="review-count" name="scrape_count" style="width: 180px;">
+                    <option value="10">~10 reviews</option>
+                    <option value="25">~25 reviews</option>
+                    <option value="50">~50 reviews</option>
+                    <option value="100">~100 reviews</option>
+                    <option value="500">~500 reviews</option>
+                    <option value="-1">All available</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Scrape Goodreads Reviews</button>
+            </form>
+        </div>
+    </div>
+
+    <hr class="mt-4">
+
+    <!-- Sentiment Progress Bar -->
+    {% if sentiment_data.total > 0 %}
+        <h2 class="mb-3">Sentiment Analysis ({{ sentiment_data.total }} reviews)</h2>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="progress" style="height: 30px;">
+                    {% if sentiment_data.positive_percent > 0 %}
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ sentiment_data.positive_percent|floatformat:0 }}%;" aria-valuenow="{{ sentiment_data.positive_percent|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100">
+                            Positive {{ sentiment_data.positive_percent|floatformat:0 }}%
+                        </div>
+                    {% endif %}
+                    {% if sentiment_data.neutral_percent > 0 %}
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ sentiment_data.neutral_percent|floatformat:0 }}%;" aria-valuenow="{{ sentiment_data.neutral_percent|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100">
+                            Neutral {{ sentiment_data.neutral_percent|floatformat:0 }}%
+                        </div>
+                    {% endif %}
+                    {% if sentiment_data.negative_percent > 0 %}
+                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ sentiment_data.negative_percent|floatformat:0 }}%;" aria-valuenow="{{ sentiment_data.negative_percent|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100">
+                            Negative {{ sentiment_data.negative_percent|floatformat:0 }}%
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <h2 class="mt-4 mb-3">Reviews</h2>
+    {% if reviews %}
+        <div class="row g-3">
+            {% for review in reviews %}
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <span class="fw-semibold">{{ review.reviewer_name|default:"Anonymous" }}</span>
+                                    <span class="text-muted small ms-2">
+                                        <i class="bi bi-calendar"></i> {{ review.review_date|date:"F d, Y"|default:"(No date)" }}
+                                    </span>
+                                    {% if review.sentiment_label %}
+                                        <span class="badge {% if review.sentiment_label == 'Positive' %}bg-success{% elif review.sentiment_label == 'Negative' %}bg-danger{% else %}bg-secondary{% endif %} ms-2">
+                                            {{ review.sentiment_label }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if review.rating %}
+                                        <span class="badge rounded-pill bg-warning text-dark fs-6">
+                                            &#9733; {{ review.rating }}/5
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No Rating</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                {% if review.review_text|length > 300 %}
+                                    <span class="review-short-text" id="short-{{ forloop.counter }}">
+                                        {{ review.review_text|slice:":300" }}...
+                                        <a href="javascript:void(0);" class="see-more-link" onclick="showFullReview({{ forloop.counter }})">See more</a>
+                                    </span>
+                                    <span class="review-full-text d-none" id="full-{{ forloop.counter }}">
+                                        {{ review.review_text|linebreaksbr|safe }}
+                                        <a href="javascript:void(0);" class="see-less-link" onclick="hideFullReview({{ forloop.counter }})">See less</a>
+                                    </span>
+                                {% else %}
+                                    <span>{{ review.review_text|linebreaksbr|safe }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center mt-3">
+            No reviews found yet. Use the buttons above to start scraping.
+        </div>
+    {% endif %}
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+<style>
+.see-more-link, .see-less-link {
+    color: #007bff; cursor: pointer; text-decoration: underline;
+}
+.see-more-link:hover, .see-less-link:hover {
+    color: #0056b3;
+}
+</style>
+<script>
+function showFullReview(idx) {
+    document.getElementById('short-' + idx).classList.add('d-none');
+    document.getElementById('full-' + idx).classList.remove('d-none');
+}
+function hideFullReview(idx) {
+    document.getElementById('short-' + idx).classList.remove('d-none');
+    document.getElementById('full-' + idx).classList.add('d-none');
+}
+</script>
+{% endblock %}
