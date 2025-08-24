@@ -48,16 +48,13 @@ def clean_title(title, author):
 def scrape_book(request):
 
     if request.method == 'POST':
-        # CORRECTED LINES: Use .get('key', '') to ensure a string is always returned
         title = request.POST.get('title', '').strip()
         author = request.POST.get('author', '').strip()
         title = clean_title(title, author)
 
         
-        # You can keep the `scrape_count` logic as it was
         max_reviews = int(request.POST.get('scrape_count', 25))
 
-        # Add a check to ensure at least a title is provided
         if not title:
             print("ERROR: A book title is required.")
             return redirect('reviews:book_list')

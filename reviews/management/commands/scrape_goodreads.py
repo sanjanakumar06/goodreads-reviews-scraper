@@ -6,7 +6,6 @@ class Command(BaseCommand):
     help = 'Scrapes reviews for a given Goodreads book ID or for all existing books.'
 
     def add_arguments(self, parser):
-        # Optional: Allow passing a specific goodreads_id as an argument
         parser.add_argument('goodreads_id', nargs='?', type=str,
                             help='The Goodreads book ID to scrape. If not provided, all existing books will be updated.')
         parser.add_argument('--max-pages', type=int, default=10,

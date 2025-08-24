@@ -254,7 +254,6 @@ def get_goodreads_reviews(goodreads_id, max_reviews_to_scrape=50):
     seen_dedupes = set()
 
     options = Options()
-    # options.add_argument("--headless")  # Uncomment for headless mode
     driver = webdriver.Chrome(options=options)
     try:
         reviews_page_url = f'https://www.goodreads.com/book/show/{goodreads_id}/reviews'
